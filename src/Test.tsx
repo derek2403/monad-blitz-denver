@@ -253,6 +253,9 @@ function BallGame() {
           const newGameId = Number(gameIdBn)
           // re-calibrate clock on each new game for tighter sync
           calibrateClock()
+          // clear stale claim guards from previous game
+          claimingRef.current.clear()
+          pendingClaimsRef.current.clear()
 
           setGameId(newGameId)
           setGameStartTime(Number(startTimeBn))
@@ -335,7 +338,7 @@ function BallGame() {
     }
   }, [fetchBalance])
 
-  // --- raw tx: sign locally, 1 RPC call ---
+  // --- raw tx: sign locally, 1 RPC call, auto-retry on nonce error ---
   const sendRawTx = async (action: string, data: string, gasLimit: bigint = 300000n) => {
     const wallet = getDirectWallet()
     if (!wallet || !cachedParamsRef.current) {
@@ -343,11 +346,21 @@ function BallGame() {
     }
 
     const params = cachedParamsRef.current
+    const isClaimAction = action.startsWith('claimBall(')
+
+    if (!isClaimAction) {
+      const txSentAt = performance.now()
+      const log: TxLog = { action, wallet: address ?? 'unknown', txSentAt, txConfirmedAt: null, wsEventAt: null }
+      pendingTxRef.current = log
+    }
+
+    const currentNonce = params.nonce
+    params.nonce++
 
     const signedTx = await wallet.signTransaction({
       to: BALLGAME_ADDRESS,
       data,
-      nonce: params.nonce,
+      nonce: currentNonce,
       gasLimit,
       maxFeePerGas: params.maxFeePerGas,
       maxPriorityFeePerGas: params.maxPriorityFeePerGas,
@@ -355,56 +368,68 @@ function BallGame() {
       type: 2,
     })
 
-    params.nonce++
+    // fire-and-forget with auto-retry on nonce error
+    ;(async () => {
+      let success = false
+      try {
+        await rpcProvider.send('eth_sendRawTransaction', [signedTx])
+        success = true
+      } catch (err: unknown) {
+        const msg = ((err as Error)?.message || '') + ((err as { info?: { error?: { message?: string } } })?.info?.error?.message || '')
+        if (msg.toLowerCase().includes('nonce')) {
+          // nonce stale — refresh and retry once
+          try {
+            await refreshCachedParams()
+            if (cachedParamsRef.current) {
+              const freshNonce = cachedParamsRef.current.nonce
+              cachedParamsRef.current.nonce++
+              const retryTx = await wallet.signTransaction({
+                to: BALLGAME_ADDRESS, data,
+                nonce: freshNonce, gasLimit,
+                maxFeePerGas: cachedParamsRef.current.maxFeePerGas,
+                maxPriorityFeePerGas: cachedParamsRef.current.maxPriorityFeePerGas,
+                chainId: CHAIN_ID, type: 2,
+              })
+              await rpcProvider.send('eth_sendRawTransaction', [retryTx])
+              success = true
+            }
+          } catch {
+            // retry also failed
+          }
+        }
 
-    // for startGame, use pendingTxRef; for claimBall, timing is in pendingClaimsRef
-    const isClaimAction = action.startsWith('claimBall(')
-    if (!isClaimAction) {
-      const txSentAt = performance.now()
-      const log: TxLog = { action, wallet: address ?? 'unknown', txSentAt, txConfirmedAt: null, wsEventAt: null }
-      pendingTxRef.current = log
-    }
+        if (!success) {
+          if (isClaimAction) {
+            const match = action.match(/claimBall\((\d+)\)/)
+            const idx = match ? Number(match[1]) : -1
+            pendingClaimsRef.current.delete(idx)
+            claimingRef.current.delete(idx)
+          } else {
+            pendingTxRef.current = null
+          }
+          setStatus(`${action} failed: ${msg || err}`)
+          refreshCachedParams()
+          return
+        }
+      }
 
-    rpcProvider.send('eth_sendRawTransaction', [signedTx]).then(() => {
+      // RPC accepted the tx
       const txConfirmedAt = performance.now()
       if (isClaimAction) {
-        // update the pending claim's RPC time
         const match = action.match(/claimBall\((\d+)\)/)
         const idx = match ? Number(match[1]) : -1
         const pending = pendingClaimsRef.current.get(idx)
         if (pending) pending.txConfirmedAt = txConfirmedAt
-        // always try to update the log entry (WS may have already added it)
         setTxLogs(prev => {
           const entry = prev.find(l => l.action === action && l.txConfirmedAt === null)
           if (entry) return prev.map(l => l === entry ? { ...l, txConfirmedAt } : l)
           return prev
         })
-        // clean up map now that both RPC and WS are done
         if (pending?.wsEventAt) pendingClaimsRef.current.delete(idx)
       } else if (pendingTxRef.current) {
         pendingTxRef.current.txConfirmedAt = txConfirmedAt
-        if (!pendingTxRef.current) {
-          setTxLogs(prev => {
-            const updated = [...prev]
-            if (updated[0] && updated[0].action === action && updated[0].txConfirmedAt === null) {
-              updated[0] = { ...updated[0], txConfirmedAt }
-            }
-            return updated
-          })
-        }
       }
-    }).catch((err) => {
-      if (isClaimAction) {
-        const match = action.match(/claimBall\((\d+)\)/)
-        const idx = match ? Number(match[1]) : -1
-        pendingClaimsRef.current.delete(idx)
-        claimingRef.current.delete(idx)
-      } else {
-        pendingTxRef.current = null
-      }
-      setStatus(`${action} failed: ${err}`)
-      refreshCachedParams()
-    })
+    })()
   }
 
   // --- MetaMask tx ---
