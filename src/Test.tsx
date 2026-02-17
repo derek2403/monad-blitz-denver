@@ -251,6 +251,8 @@ function BallGame() {
         contract.on('GameStarted', (gameIdBn, startTimeBn, xs, ys) => {
           const wsEventAt = performance.now()
           const newGameId = Number(gameIdBn)
+          // re-calibrate clock on each new game for tighter sync
+          calibrateClock()
 
           setGameId(newGameId)
           setGameStartTime(Number(startTimeBn))
@@ -608,16 +610,27 @@ function BallGame() {
     }
 
     const animate = () => {
-      // t = seconds since game started on-chain, calibrated to chain clock
+      // t = seconds since game started, synced to chain clock
       const t = (Date.now() / 1000 + clockOffset) - gameStartTime
-      const offsets = balls.map((_, i) => {
-        const speed = 1.5 + (i % 5) * 0.4
-        const amp = 4.0 + (i % 3) * 1.5
-        const phase = (i * Math.PI * 2) / 10
-        return {
-          dx: Math.sin(t * speed + phase) * amp,
-          dy: Math.cos(t * speed * 0.8 + phase + 1) * amp,
-        }
+
+      const offsets = balls.map((ball, i) => {
+        // Fruit-ninja style: parabolic arc launching from bottom
+        const cycleDuration = 3.0 + (i % 4) * 0.5     // 3.0–4.5s per cycle
+        const launchDelay = (i % 5) * 0.4              // stagger 0–1.6s
+        const elapsed = t - launchDelay
+        if (elapsed < 0) return { dx: 0, dy: 110 - ball.y }
+
+        const phase = (elapsed % cycleDuration) / cycleDuration  // 0→1
+        // parabola: 4*p*(1-p) peaks at 1.0 when p=0.5
+        const peakHeight = 75 + (i % 3) * 15           // 75–105% travel upward
+        const baseY = 110                               // starts below screen
+        const targetY = baseY - peakHeight * 4 * phase * (1 - phase)
+
+        // slight horizontal drift, deterministic from chain time
+        const dx = Math.sin(elapsed * 0.6 + i * 2.0) * 2.5
+        const dy = targetY - ball.y
+
+        return { dx, dy }
       })
       setAnimOffset(offsets)
       animRef.current = requestAnimationFrame(animate)
