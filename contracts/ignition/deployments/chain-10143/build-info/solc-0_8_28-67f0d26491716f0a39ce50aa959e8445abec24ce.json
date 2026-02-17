@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-67f0d26491716f0a39ce50aa959e8445abec24ce",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/BallGame.sol": "project/contracts/BallGame.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "prague",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/BallGame.sol": {
+        "content": "// SPDX-License-Identifier: UNLICENSED\r\npragma solidity ^0.8.28;\r\n\r\ncontract BallGame {\r\n    struct Game {\r\n        uint256 startTime;\r\n        uint16[10] xs;\r\n        uint16[10] ys;\r\n        address[10] claimedBy;\r\n        uint8 claimedCount;\r\n    }\r\n\r\n    uint256 public currentGameId;\r\n    mapping(uint256 => Game) public games;\r\n\r\n    event GameStarted(uint256 indexed gameId, uint256 startTime, uint16[10] xs, uint16[10] ys);\r\n    event BallClaimed(uint256 indexed gameId, uint8 index, address player);\r\n\r\n    function startGame() external {\r\n        if (currentGameId > 0) {\r\n            require(games[currentGameId].claimedCount == 10, \"Current game still active\");\r\n        }\r\n\r\n        currentGameId++;\r\n        Game storage g = games[currentGameId];\r\n        g.startTime = block.timestamp;\r\n\r\n        uint256 seed = uint256(keccak256(abi.encodePacked(block.prevrandao, currentGameId)));\r\n        for (uint8 i = 0; i < 10; i++) {\r\n            uint256 hash = uint256(keccak256(abi.encodePacked(seed, i)));\r\n            g.xs[i] = uint16(hash % 801) + 100;\r\n            g.ys[i] = uint16((hash >> 16) % 801) + 100;\r\n        }\r\n\r\n        emit GameStarted(currentGameId, g.startTime, g.xs, g.ys);\r\n    }\r\n\r\n    function claimBall(uint8 index) external {\r\n        require(currentGameId > 0, \"No active game\");\r\n        require(index < 10, \"Invalid ball index\");\r\n\r\n        Game storage g = games[currentGameId];\r\n        require(g.claimedCount < 10, \"Game already finished\");\r\n        require(g.claimedBy[index] == address(0), \"Ball already claimed\");\r\n\r\n        g.claimedBy[index] = msg.sender;\r\n        g.claimedCount++;\r\n\r\n        emit BallClaimed(currentGameId, index, msg.sender);\r\n    }\r\n\r\n    function getGamePositions(uint256 gameId) external view returns (uint16[10] memory xs, uint16[10] memory ys) {\r\n        Game storage g = games[gameId];\r\n        return (g.xs, g.ys);\r\n    }\r\n\r\n    function getGameClaims(uint256 gameId) external view returns (address[10] memory claimedBy, uint8 claimedCount) {\r\n        Game storage g = games[gameId];\r\n        return (g.claimedBy, g.claimedCount);\r\n    }\r\n\r\n    function getGameStartTime(uint256 gameId) external view returns (uint256) {\r\n        return games[gameId].startTime;\r\n    }\r\n\r\n    function isGameActive() external view returns (bool) {\r\n        if (currentGameId == 0) return false;\r\n        return games[currentGameId].claimedCount < 10;\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}
