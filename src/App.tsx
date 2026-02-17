@@ -2,12 +2,13 @@ import { useState, useCallback } from 'react'
 import { Wallet } from 'ethers'
 import Landing from './pages/Landing'
 import Lobby from './pages/Lobby'
-import Game from './components/Game/Game'
+import Game from './pages/Game'
 import Leaderboard from './pages/Leaderboard'
 import Reward from './pages/Reward'
 import WalletExport from './pages/WalletExport'
+import Admin from './pages/Admin'
 
-type Page = 'landing' | 'lobby' | 'game' | 'leaderboard' | 'reward' | 'wallet'
+type Page = 'landing' | 'lobby' | 'game' | 'leaderboard' | 'reward' | 'wallet' | 'admin'
 
 interface LeaderboardEntry {
   address: string
@@ -16,8 +17,14 @@ interface LeaderboardEntry {
 
 const STORAGE_KEY = 'monad-ballgame-burner-key'
 
+function getInitialPage(): Page {
+  const path = window.location.pathname
+  if (path === '/admin') return 'admin'
+  return 'landing'
+}
+
 function App() {
-  const [page, setPage] = useState<Page>('landing')
+  const [page, setPage] = useState<Page>(getInitialPage)
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [myScore, setMyScore] = useState(0)
@@ -45,6 +52,10 @@ function App() {
     setPage('wallet')
   }
 
+  const handleAdmin = () => {
+    setPage('admin')
+  }
+
   const handleDone = () => {
     setPage('landing')
   }
@@ -54,7 +65,7 @@ function App() {
 
   switch (page) {
     case 'landing':
-      return <Landing onPlay={handlePlay} />
+      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
     case 'lobby':
       return <Lobby onGameStart={handleGameStart} />
     case 'game':
@@ -84,8 +95,10 @@ function App() {
           onDone={handleDone}
         />
       )
+    case 'admin':
+      return <Admin onBack={handleDone} />
     default:
-      return <Landing onPlay={handlePlay} />
+      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
   }
 }
 

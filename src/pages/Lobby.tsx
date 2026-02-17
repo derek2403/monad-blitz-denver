@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Wallet, JsonRpcProvider, formatEther, Contract, WebSocketProvider, Interface } from 'ethers'
+import { useState, useEffect } from 'react'
+import { Wallet, JsonRpcProvider, formatEther, Contract, WebSocketProvider } from 'ethers'
 
 const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
 const MONAD_WS_URL = 'wss://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
-const BALLGAME_ADDRESS = '0xcd03Cf204057882d3E54142D0E17322F77f6Cc4C'
+const BALLGAME_ADDRESS = '0xE17722A663E72f876baFe1F73dE6e6e02358Ba65'
 const STORAGE_KEY = 'monad-ballgame-burner-key'
 const CHAIN_ID = 10143
 const ENV_PRIVATE_KEY = import.meta.env.VITE_PRIVATE_KEY as string | undefined
@@ -12,6 +12,7 @@ const BALLGAME_ABI = [
   'function currentGameId() view returns (uint256)',
   'function isGameActive() view returns (bool)',
   'event GameStarted(uint256 indexed gameId, uint256 startTime, uint16[50] xs, uint16[50] ys, uint8[50] ballTypes)',
+  'event GameEnded(uint256 indexed gameId, address endedBy)',
 ]
 
 const rpcProvider = new JsonRpcProvider(MONAD_RPC_URL)
@@ -43,7 +44,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
 
     // Fund if env key available
     if (ENV_PRIVATE_KEY) {
-      ;(async () => {
+      ; (async () => {
         try {
           setStatus('Funding your wallet...')
           const funder = new Wallet(ENV_PRIVATE_KEY, rpcProvider)
@@ -132,7 +133,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
     }
   }, [wallet, onGameStart])
 
-  const shortAddr = wallet ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : ''
+
 
   return (
     <div className="relative w-screen h-screen bg-[#0a0a1a] overflow-hidden select-none flex">

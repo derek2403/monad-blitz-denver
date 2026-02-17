@@ -1,8 +1,9 @@
 interface LandingProps {
   onPlay: () => void
+  onAdmin: () => void
 }
 
-export default function Landing({ onPlay }: LandingProps) {
+export default function Landing({ onPlay, onAdmin }: LandingProps) {
   return (
     <div className="relative w-screen h-screen bg-[#0a0a1a] overflow-hidden select-none flex flex-col items-center justify-center">
       {/* Background character video */}
@@ -37,6 +38,13 @@ export default function Landing({ onPlay }: LandingProps) {
         <span className="text-gray-600 text-xs mt-4 tracking-widest uppercase">
           Built on Monad Testnet
         </span>
+
+        <button
+          onClick={onAdmin}
+          className="mt-6 text-gray-600 hover:text-gray-400 text-xs underline transition-colors"
+        >
+          Admin Panel
+        </button>
       </div>
     </div>
   )
