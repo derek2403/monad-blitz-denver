@@ -1,23 +1,11 @@
 interface LandingProps {
   onPlay: () => void
+  onAdmin: () => void
 }
 
-export default function Landing({ onPlay }: LandingProps) {
+export default function Landing({ onPlay, onAdmin }: LandingProps) {
   return (
-    <div className="relative w-screen h-screen bg-[#0a0a1a] overflow-hidden select-none flex flex-col items-center justify-center">
-      {/* Background character video */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <video
-          src="/character.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          style={{ height: '80%', objectFit: 'contain', opacity: 0.3 }}
-        />
-      </div>
-
-      {/* Content */}
+    <div className="relative w-screen h-screen bg-white overflow-hidden select-none flex flex-col items-center justify-center">
       <div className="relative z-10 flex flex-col items-center gap-6">
         <h1 className="text-6xl font-bold font-mono text-center leading-tight">
           <span className="text-yellow-400">Monad</span>{' '}
@@ -37,6 +25,13 @@ export default function Landing({ onPlay }: LandingProps) {
         <span className="text-gray-600 text-xs mt-4 tracking-widest uppercase">
           Built on Monad Testnet
         </span>
+
+        <button
+          onClick={onAdmin}
+          className="mt-6 text-gray-600 hover:text-gray-400 text-xs underline transition-colors"
+        >
+          Admin Panel
+        </button>
       </div>
     </div>
   )

@@ -1,82 +1,96 @@
 import { useState, useCallback } from 'react'
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { Wallet } from 'ethers'
 import Landing from './pages/Landing'
 import Lobby from './pages/Lobby'
-import Game from './components/Game/Game'
+import Game from './pages/Game'
 import Leaderboard from './pages/Leaderboard'
 import Reward from './pages/Reward'
 import WalletExport from './pages/WalletExport'
+import Admin from './pages/Admin'
+
+type Page = 'landing' | 'lobby' | 'game' | 'leaderboard' | 'reward' | 'wallet' | 'admin'
 
 interface LeaderboardEntry {
   address: string
   score: number
 }
 
+function getInitialPage(): Page {
+  const path = window.location.pathname
+  if (path === '/admin') return 'admin'
+  return 'landing'
+}
+
 function App() {
-  const navigate = useNavigate()
+  const [page, setPage] = useState<Page>(getInitialPage)
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [myScore, setMyScore] = useState(0)
 
   const handlePlay = () => {
-    navigate('/Lobby')
+    setPage('lobby')
   }
 
   const handleGameStart = useCallback((w: Wallet) => {
     setWallet(w)
-    navigate('/Game')
-  }, [navigate])
+    setPage('game')
+  }, [])
 
   const handleGameEnd = useCallback((lb: LeaderboardEntry[], score: number) => {
     setLeaderboard(lb)
     setMyScore(score)
-    navigate('/Leaderboard')
-  }, [navigate])
+    setPage('leaderboard')
+  }, [])
 
   const handleClaimPrize = () => {
-    navigate('/Reward')
+    setPage('reward')
   }
 
   const handleExportWallet = () => {
-    navigate('/WalletExport')
+    setPage('wallet')
+  }
+
+  const handleAdmin = () => {
+    setPage('admin')
+  }
+
+  const handleDone = () => {
+    setPage('landing')
   }
 
   const address = wallet?.address ?? ''
 
-  return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/Landing" replace />} />
-      <Route path="/Landing" element={<Landing onPlay={handlePlay} />} />
-      <Route path="/Lobby" element={<Lobby onGameStart={handleGameStart} />} />
-      <Route
-        path="/Game"
-        element={wallet ? <Game wallet={wallet} onGameEnd={handleGameEnd} /> : <Navigate to="/Lobby" replace />}
-      />
-      <Route
-        path="/Leaderboard"
-        element={
-          <Leaderboard
-            leaderboard={leaderboard}
-            myScore={myScore}
-            myAddress={address}
-            onClaimPrize={handleClaimPrize}
-          />
-        }
-      />
-      <Route
-        path="/Reward"
-        element={
-          <Reward
-            myScore={myScore}
-            myAddress={address}
-            onExportWallet={handleExportWallet}
-          />
-        }
-      />
-      <Route path="/WalletExport" element={<WalletExport />} />
-    </Routes>
-  )
+  switch (page) {
+    case 'landing':
+      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
+    case 'lobby':
+      return <Lobby onGameStart={handleGameStart} />
+    case 'game':
+      return wallet ? <Game wallet={wallet} onGameEnd={handleGameEnd} /> : null
+    case 'leaderboard':
+      return (
+        <Leaderboard
+          leaderboard={leaderboard}
+          myScore={myScore}
+          myAddress={address}
+          onClaimPrize={handleClaimPrize}
+        />
+      )
+    case 'reward':
+      return (
+        <Reward
+          myScore={myScore}
+          myAddress={address}
+          onExportWallet={handleExportWallet}
+        />
+      )
+    case 'wallet':
+      return <WalletExport onDone={handleDone} />
+    case 'admin':
+      return <Admin onBack={handleDone} />
+    default:
+      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
+  }
 }
 
 export default App
