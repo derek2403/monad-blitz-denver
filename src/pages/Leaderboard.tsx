@@ -14,7 +14,7 @@ export default function Leaderboard({ leaderboard, myScore, myAddress, onClaimPr
   const myRank = leaderboard.findIndex(e => e.address.toLowerCase() === myAddress.toLowerCase()) + 1
 
   return (
-    <div className="w-screen h-screen bg-[#0a0a1a] overflow-hidden select-none flex flex-col items-center justify-center px-8">
+    <div className="relative w-screen h-screen bg-[#0a0a1a] overflow-hidden select-none flex flex-col items-center justify-center px-8">
       {/* Background video */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <video src="/character.mp4" autoPlay loop muted playsInline style={{ height: '80%', objectFit: 'contain', opacity: 0.15 }} />
