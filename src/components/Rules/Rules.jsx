@@ -1,23 +1,60 @@
-import { useState, useEffect } from 'react'
-import { Wallet, JsonRpcProvider, formatEther, Contract, WebSocketProvider } from 'ethers'
+import { useState } from 'react'
 
-const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
-const MONAD_WS_URL = 'wss://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
-const BALLGAME_ADDRESS = '0xE17722A663E72f876baFe1F73dE6e6e02358Ba65'
-const STORAGE_KEY = 'monad-ballgame-burner-key'
-const CHAIN_ID = 10143
-const ENV_PRIVATE_KEY = import.meta.env.VITE_PRIVATE_KEY as string | undefined
+const HARDCODED_ADDRESS = '0x6173b42c3e4b8f9a1d2e7c5f8b3a9d4e6173e2b5'
+const SHORT_ADDRESS = '0x6173...e2b5'
 
-const BALLGAME_ABI = [
-  'function currentGameId() view returns (uint256)',
-  'function isGameActive() view returns (bool)',
-  'event GameStarted(uint256 indexed gameId, uint256 startTime, uint16[50] xs, uint16[50] ys, uint8[50] ballTypes)',
-  'event GameEnded(uint256 indexed gameId, address endedBy)',
-]
+function WalletButton() {
+  const [connected, setConnected] = useState(false)
 
-const rpcProvider = new JsonRpcProvider(MONAD_RPC_URL)
+  if (connected) {
+    return (
+      <button
+        onClick={() => setConnected(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: 'rgba(255,255,255,0.92)',
+          border: '1px solid rgba(0,0,0,0.08)',
+          borderRadius: '999px',
+          padding: '6px 14px 6px 6px',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          fontSize: '0.85rem',
+          fontWeight: 700,
+          color: '#111',
+          fontFamily: 'monospace',
+        }}
+      >
+        <img
+          src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${HARDCODED_ADDRESS}`}
+          alt="avatar"
+          style={{ width: 28, height: 28, borderRadius: '50%', background: '#e5e7eb' }}
+        />
+        {SHORT_ADDRESS}
+      </button>
+    )
+  }
 
-const BRACKET = 18
+  return (
+    <button
+      onClick={() => setConnected(true)}
+      style={{
+        background: '#fff',
+        border: '1px solid rgba(131,110,249,0.5)',
+        borderRadius: '999px',
+        padding: '8px 18px',
+        cursor: 'pointer',
+        boxShadow: '0 2px 8px rgba(131,110,249,0.12)',
+        fontSize: '0.85rem',
+        fontWeight: 700,
+        color: '#6d28d9',
+      }}
+    >
+      Connect Wallet
+    </button>
+  )
+}
 
 const COINS = [
   { icon: '◆', sub: 'MONAD', bg: '#836ef9', pts: '+3', x: 10, delay: 0,   dur: 2.9, size: 62 },
@@ -36,17 +73,19 @@ const COINS = [
   { icon: 'Ξ', sub: 'ETH',   bg: '#627EEA', pts: '+1', x: 63, delay: 1.6, dur: 2.5, size: 52 },
 ]
 
-function Corner({ top, left, right, bottom }: { top?: number; left?: number; right?: number; bottom?: number }) {
-  const style: React.CSSProperties = {
+const BRACKET = 18
+
+function Corner({ top, left, right, bottom }) {
+  const style = {
     position: 'absolute',
     width: 24, height: 24,
-    ...(top    != null ? { top }    : {}),
-    ...(left   != null ? { left }   : {}),
-    ...(right  != null ? { right }  : {}),
-    ...(bottom != null ? { bottom } : {}),
+    ...(top    != null ? { top:    top }    : {}),
+    ...(left   != null ? { left:   left }   : {}),
+    ...(right  != null ? { right:  right }  : {}),
+    ...(bottom != null ? { bottom: bottom } : {}),
   }
-  const h: React.CSSProperties = { position: 'absolute', height: 2, width: BRACKET, background: '#111' }
-  const v: React.CSSProperties = { position: 'absolute', width: 2, height: BRACKET, background: '#111' }
+  const h = { position: 'absolute', height: 2, width: BRACKET, background: '#111' }
+  const v = { position: 'absolute', width: 2, height: BRACKET, background: '#111' }
   return (
     <div style={style}>
       <div style={{ ...h, top: 0, left: 0 }} />
@@ -55,133 +94,14 @@ function Corner({ top, left, right, bottom }: { top?: number; left?: number; rig
   )
 }
 
-interface LobbyProps {
-  onGameStart: (wallet: Wallet) => void
-}
-
-export default function Lobby({ onGameStart }: LobbyProps) {
-  const [wallet, setWallet] = useState<Wallet | null>(null)
-  const [balance, setBalance] = useState<string | null>(null)
-  const [status, setStatus] = useState('Creating your burner wallet...')
-  const [waitingForGame, setWaitingForGame] = useState(false)
-
-  // Create or load burner wallet on mount
-  useEffect(() => {
-    let w: Wallet
-    const existing = localStorage.getItem(STORAGE_KEY)
-    if (existing) {
-      w = new Wallet(existing, rpcProvider)
-      setStatus('Burner wallet loaded')
-    } else {
-      const fresh = Wallet.createRandom()
-      localStorage.setItem(STORAGE_KEY, fresh.privateKey)
-      w = new Wallet(fresh.privateKey, rpcProvider)
-      setStatus('Burner wallet created!')
-    }
-    setWallet(w)
-
-    // Fund if env key available
-    if (ENV_PRIVATE_KEY) {
-      ; (async () => {
-        try {
-          setStatus('Funding your wallet...')
-          const funder = new Wallet(ENV_PRIVATE_KEY, rpcProvider)
-          const [nonce, feeData] = await Promise.all([
-            rpcProvider.getTransactionCount(funder.address, 'pending'),
-            rpcProvider.getFeeData(),
-          ])
-          const signedTx = await funder.signTransaction({
-            to: w.address,
-            value: 1000000000000000000n,
-            nonce,
-            gasLimit: 21000n,
-            maxFeePerGas: feeData.maxFeePerGas ?? 50000000000n,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 2000000000n,
-            chainId: CHAIN_ID,
-            type: 2,
-          })
-          await rpcProvider.send('eth_sendRawTransaction', [signedTx])
-          // Poll for balance
-          for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 250))
-            const bal = await rpcProvider.getBalance(w.address)
-            if (bal > 0n) {
-              setBalance(formatEther(bal))
-              setStatus('Wallet funded! Waiting for admin to start game...')
-              break
-            }
-          }
-        } catch {
-          setStatus('Auto-fund failed. Send MON manually to your address.')
-        }
-      })()
-    } else {
-      setStatus('Wallet ready. Send MON to your address, then wait for admin to start.')
-    }
-  }, [])
-
-  // Fetch balance periodically
-  useEffect(() => {
-    if (!wallet) return
-    const fetch = async () => {
-      try {
-        const bal = await rpcProvider.getBalance(wallet.address)
-        setBalance(formatEther(bal))
-      } catch { /* ignore */ }
-    }
-    fetch()
-    const id = setInterval(fetch, 5000)
-    return () => clearInterval(id)
-  }, [wallet])
-
-  // Listen for GameStarted event via WebSocket
-  useEffect(() => {
-    if (!wallet) return
-    let destroyed = false
-    let wsProvider: WebSocketProvider | null = null
-
-    const listen = async () => {
-      try {
-        wsProvider = new WebSocketProvider(MONAD_WS_URL)
-        await wsProvider.ready
-        if (destroyed) { wsProvider.destroy(); return }
-
-        setWaitingForGame(true)
-
-        const contract = new Contract(BALLGAME_ADDRESS, BALLGAME_ABI, wsProvider)
-        contract.on('GameStarted', () => {
-          if (!destroyed) onGameStart(wallet)
-        })
-
-        // Also check if a game is already active
-        const readContract = new Contract(BALLGAME_ADDRESS, BALLGAME_ABI, rpcProvider)
-        const active = await readContract.isGameActive()
-        if (active && !destroyed) {
-          onGameStart(wallet)
-        }
-      } catch (err) {
-        console.error('WS failed in lobby:', err)
-      }
-    }
-
-    listen()
-    return () => {
-      destroyed = true
-      wsProvider?.destroy()
-    }
-  }, [wallet, onGameStart])
-
-  const shortAddr = wallet ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : '...'
-
+export default function Rules() {
   return (
     <div style={{
       minHeight: '100vh',
-      width: '100vw',
       background: '#fff',
       display: 'grid',
       gridTemplateColumns: '52% 48%',
       fontFamily: 'system-ui, -apple-system, sans-serif',
-      overflow: 'hidden',
     }}>
       <style>{`
         @keyframes coinFall {
@@ -198,43 +118,24 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         .rule-row:nth-child(1) { animation-delay: 0.05s; }
         .rule-row:nth-child(2) { animation-delay: 0.15s; }
         .rule-row:nth-child(3) { animation-delay: 0.25s; }
+        .pts-row { animation: fadeUp 0.5s ease both; }
+        .pts-row:nth-child(1) { animation-delay: 0.35s; }
+        .pts-row:nth-child(2) { animation-delay: 0.45s; }
+        .pts-row:nth-child(3) { animation-delay: 0.55s; }
       `}</style>
 
       {/* ── LEFT PANEL ── */}
       <div style={{
-        padding: '3rem 3.5rem',
+        padding: '5rem 4rem',
         borderRight: '1px solid #e5e7eb',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
         position: 'relative',
-        overflow: 'auto',
       }}>
-        {/* Wallet pill — top right */}
         <div style={{ position: 'absolute', top: '1.5rem', right: '1.5rem' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'rgba(255,255,255,0.92)',
-            border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: '999px',
-            padding: '6px 14px 6px 10px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            color: '#111',
-            fontFamily: 'monospace',
-          }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: balance && parseFloat(balance) > 0 ? '#22c55e' : '#eab308',
-              display: 'inline-block',
-            }} />
-            {shortAddr}
-          </div>
+          <WalletButton />
         </div>
-
         <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.18em', color: '#9ca3af', marginBottom: '1.2rem' }}>
           // GAME RULES
         </p>
@@ -243,12 +144,12 @@ export default function Lobby({ onGameStart }: LobbyProps) {
           Click & Win.
         </h1>
 
-        <p style={{ color: '#6b7280', fontSize: '1rem', lineHeight: 1.75, margin: '0 0 2rem', maxWidth: '380px' }}>
+        <p style={{ color: '#6b7280', fontSize: '1rem', lineHeight: 1.75, margin: '0 0 3rem', maxWidth: '380px' }}>
           Tap the right coins, rack up points, and walk away with real money. Fast, simple, addictive.
         </p>
 
         {/* Numbered rules */}
-        <div style={{ borderTop: '1px solid #e5e7eb', marginBottom: '2rem' }}>
+        <div style={{ borderTop: '1px solid #e5e7eb', marginBottom: '2.5rem' }}>
           {[
             ['01', 'CLICK AS MANY COINS AS POSSIBLE'],
             ['02', 'MORE COINS = MORE POINTS'],
@@ -266,7 +167,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         </div>
 
         {/* Tips row */}
-        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+        <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
           {['⚡ Click fast', '🚫 Avoid bad coins', '🤑 Earn money'].map(tip => (
             <span key={tip} style={{
               fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.06em',
@@ -274,50 +175,6 @@ export default function Lobby({ onGameStart }: LobbyProps) {
               borderRadius: '999px', padding: '0.35rem 0.9rem',
             }}>{tip}</span>
           ))}
-        </div>
-
-        {/* Wallet info card */}
-        <div style={{
-          background: '#f9fafb',
-          border: '1px solid #e5e7eb',
-          borderRadius: '16px',
-          padding: '1.2rem 1.4rem',
-          marginBottom: '1rem',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-            <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.15em', color: '#9ca3af' }}>
-              // BURNER WALLET
-            </span>
-            <span style={{
-              fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 700,
-              color: balance && parseFloat(balance) > 0 ? '#16a34a' : '#9ca3af',
-            }}>
-              {balance ? `${parseFloat(balance).toFixed(4)} MON` : '...'}
-            </span>
-          </div>
-          <div style={{
-            fontFamily: 'monospace', fontSize: '0.75rem', color: '#374151',
-            background: '#f3f4f6', borderRadius: '8px', padding: '0.6rem 0.8rem',
-            wordBreak: 'break-all',
-          }}>
-            {wallet?.address ?? 'Loading...'}
-          </div>
-        </div>
-
-        {/* Status */}
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>{status}</p>
-          {waitingForGame && (
-            <div style={{ marginTop: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', background: '#eab308',
-                display: 'inline-block', animation: 'fadeUp 1s ease infinite alternate',
-              }} />
-              <span style={{ color: '#ca8a04', fontSize: '0.85rem', fontWeight: 600 }}>
-                Waiting for admin to start the game...
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -330,7 +187,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         backgroundSize: '26px 26px',
       }}>
         {/* Corner brackets */}
-        <Corner top={20} left={20} />
+        <Corner top={20}  left={20}  />
         <div style={{ position: 'absolute', top: 20, right: 20, width: 24, height: 24 }}>
           <div style={{ position: 'absolute', top: 0, right: 0, width: BRACKET, height: 2, background: '#111' }} />
           <div style={{ position: 'absolute', top: 0, right: 0, width: 2, height: BRACKET, background: '#111' }} />
