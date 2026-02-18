@@ -290,11 +290,6 @@ export default function Landing({ onAdmin }: LandingProps) {
                 <p className="text-default-600" style={{ fontFamily: "'Inter', sans-serif" }}>
                   This will replace your current burner wallet with a brand new one. Make sure you have saved your current private key if needed.
                 </p>
-                {generating && (
-                  <p className="text-center text-2xl font-bold text-danger mt-2" style={{ fontFamily: "'Roboto Mono', monospace" }}>
-                    {countdown}
-                  </p>
-                )}
               </ModalBody>
               <ModalFooter>
                 <Button variant="bordered" style={{ fontFamily: "'Roboto Mono', monospace" }} onPress={handleBackFromConfirm}>
