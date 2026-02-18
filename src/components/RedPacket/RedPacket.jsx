@@ -248,7 +248,7 @@ export default function RedPacket() {
               letterSpacing: '0.08em',
             }}
           >
-            MON
+            WON
           </div>
         </div>
       )}
