@@ -202,25 +202,19 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
   useEffect(() => { if (!gameActive || isFalling) return; const id = setInterval(fetchGameState, 3000); return () => clearInterval(id) }, [gameActive, isFalling, fetchGameState])
   useEffect(() => { refreshLeaderboard(); const id = setInterval(refreshLeaderboard, 5000); return () => clearInterval(id) }, [refreshLeaderboard])
 
-  // ─── 40s game timer ────────────────────────────────────────────────────────
+  // ─── 40s game timer (synced to on-chain startTime) ─────────────────────────
 
-  // Set local start time when we enter the game page
+  // Countdown timer — uses blockchain gameStartTime so all players share the same deadline
   useEffect(() => {
-    if (gameActive && gameStartedAtRef.current === 0) {
-      gameStartedAtRef.current = Date.now()
-    }
-  }, [gameActive])
-
-  // Countdown timer
-  useEffect(() => {
-    if (!gameActive || gameStartedAtRef.current === 0) return
+    if (!gameActive || gameStartTime === 0) return
     const id = setInterval(() => {
-      const elapsed = Date.now() - gameStartedAtRef.current
+      const nowMs = Date.now() + clockOffsetMs
+      const elapsed = nowMs - gameStartTime * 1000
       const remaining = Math.max(0, GAME_DURATION_MS - elapsed)
       setTimeLeft(remaining)
     }, 100)
     return () => clearInterval(id)
-  }, [gameActive])
+  }, [gameActive, gameStartTime])
 
   // ─── Raw tx ────────────────────────────────────────────────────────────────
 
@@ -606,6 +600,36 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
           </div>
         </div>
 
+
+        {/* Timer — top right */}
+        <div className="absolute top-4 right-4 z-10">
+          <div className="bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 backdrop-blur-md flex items-center gap-3">
+            <svg width="48" height="48" viewBox="0 0 48 48">
+              <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
+              <circle
+                cx="24" cy="24" r="20" fill="none"
+                stroke={isTimerLow ? '#FF4444' : '#A78BFA'}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={`${2 * Math.PI * 20}`}
+                strokeDashoffset={`${2 * Math.PI * 20 * (1 - timerProgress)}`}
+                style={{
+                  transform: 'rotate(-90deg)',
+                  transformOrigin: '50% 50%',
+                  filter: isTimerLow ? 'drop-shadow(0 0 6px #FF4444)' : 'drop-shadow(0 0 4px #A78BFA)',
+                }}
+              />
+              <text
+                x="24" y="24"
+                textAnchor="middle" dominantBaseline="central"
+                fill={isTimerLow ? '#FF4444' : '#fff'}
+                fontSize="16" fontWeight="bold" fontFamily="monospace"
+              >
+                {timerSeconds}
+              </text>
+            </svg>
+          </div>
+        </div>
 
         {/* Character — center */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0 }}>
