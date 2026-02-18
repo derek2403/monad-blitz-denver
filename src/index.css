@@ -15,6 +15,5 @@ html, body, #root {
 }
 
 body {
-  overflow: hidden;
-  background: #0a0a1a;
+  background: #fff;
 }
