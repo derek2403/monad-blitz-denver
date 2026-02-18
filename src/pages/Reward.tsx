@@ -112,6 +112,10 @@ export default function Reward({ leaderboard, myAddress, onExportWallet }: Rewar
           60%  { transform: scale(1.15) translateY(-8px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
+        @keyframes glow {
+          0%,100% { box-shadow: 0 0 18px 4px rgba(255,215,0,0.7); }
+          50%      { box-shadow: 0 0 32px 10px rgba(255,215,0,1); }
+        }
         @keyframes buttonPulse {
           0%,100% { transform: translate(-50%, -50%) scale(1);   box-shadow: 0 0 10px 2px rgba(255,215,0,0.8); }
           50%      { transform: translate(-50%, -50%) scale(1.07); box-shadow: 0 0 18px 5px rgba(255,215,0,1); }
@@ -178,7 +182,7 @@ export default function Reward({ leaderboard, myAddress, onExportWallet }: Rewar
           textAlign: 'center',
         }}
       >
-        {opened ? 'Congratulations!' : 'You earned a reward!'}
+        {opened ? '🎉 Congratulations! 🎉' : '✨ You received a Red Packet! ✨'}
       </h1>
 
       {/* Rank badge */}
@@ -283,7 +287,7 @@ export default function Reward({ leaderboard, myAddress, onExportWallet }: Rewar
               letterSpacing: '0.08em',
             }}
           >
-            USDC
+            WON
           </div>
 
           {/* Export wallet button */}
