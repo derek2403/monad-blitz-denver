@@ -22,20 +22,20 @@ const rpcProvider = new JsonRpcProvider(MONAD_RPC_URL)
 const BRACKET = 18
 
 const COINS = [
-  { icon: '◆', sub: 'MONAD', bg: '#836ef9', pts: '+3', x: 10, delay: 0,   dur: 2.9, size: 62 },
-  { icon: '₿', sub: 'BTC',   bg: '#F7931A', pts: '+1', x: 28, delay: 0.7, dur: 3.3, size: 52 },
-  { icon: 'Ξ', sub: 'ETH',   bg: '#627EEA', pts: '+1', x: 48, delay: 1.3, dur: 2.7, size: 52 },
-  { icon: '◆', sub: 'MONAD', bg: '#836ef9', pts: '+3', x: 68, delay: 0.3, dur: 3.1, size: 62 },
-  { icon: '✕', sub: 'FTX',   bg: '#ef4444', pts: '–5', x: 84, delay: 1.9, dur: 2.5, size: 48 },
-  { icon: '☽', sub: 'LUNA',  bg: '#ef4444', pts: '–5', x: 18, delay: 2.3, dur: 3.0, size: 48 },
-  { icon: '₿', sub: 'BTC',   bg: '#F7931A', pts: '+1', x: 58, delay: 0.5, dur: 2.8, size: 52 },
-  { icon: '◆', sub: 'MONAD', bg: '#836ef9', pts: '+3', x: 38, delay: 1.8, dur: 3.2, size: 62 },
-  { icon: 'Ξ', sub: 'ETH',   bg: '#627EEA', pts: '+1', x: 76, delay: 2.6, dur: 2.9, size: 52 },
-  { icon: '✕', sub: 'FTX',   bg: '#ef4444', pts: '–5', x: 5,  delay: 1.1, dur: 2.6, size: 48 },
-  { icon: '◆', sub: 'MONAD', bg: '#836ef9', pts: '+3', x: 91, delay: 0.9, dur: 3.4, size: 62 },
-  { icon: '₿', sub: 'BTC',   bg: '#F7931A', pts: '+1', x: 22, delay: 2.9, dur: 2.7, size: 52 },
-  { icon: '☽', sub: 'LUNA',  bg: '#ef4444', pts: '–5', x: 43, delay: 0.2, dur: 3.0, size: 48 },
-  { icon: 'Ξ', sub: 'ETH',   bg: '#627EEA', pts: '+1', x: 63, delay: 1.6, dur: 2.5, size: 52 },
+  { img: '/icons/monad.png', sub: 'MON', pts: '+3', x: 10, delay: 0,   dur: 2.9, size: 62 },
+  { img: '/icons/btc.png',   sub: 'BTC',   pts: '+1', x: 28, delay: 0.7, dur: 3.3, size: 52 },
+  { img: '/icons/eth.png',   sub: 'ETH',   pts: '+1', x: 48, delay: 1.3, dur: 2.7, size: 52 },
+  { img: '/icons/monad.png', sub: 'MONAD', pts: '+3', x: 68, delay: 0.3, dur: 3.1, size: 62 },
+  { img: '/icons/ftx.png',   sub: 'FTX',   pts: '–5', x: 84, delay: 1.9, dur: 2.5, size: 48 },
+  { img: '/icons/terra.png', sub: 'LUNA',  pts: '–5', x: 18, delay: 2.3, dur: 3.0, size: 48 },
+  { img: '/icons/btc.png',   sub: 'BTC',   pts: '+1', x: 58, delay: 0.5, dur: 2.8, size: 52 },
+  { img: '/icons/monad.png', sub: 'MONAD', pts: '+3', x: 38, delay: 1.8, dur: 3.2, size: 62 },
+  { img: '/icons/eth.png',   sub: 'ETH',   pts: '+1', x: 76, delay: 2.6, dur: 2.9, size: 52 },
+  { img: '/icons/ftx.png',   sub: 'FTX',   pts: '–5', x: 5,  delay: 1.1, dur: 2.6, size: 48 },
+  { img: '/icons/monad.png', sub: 'MONAD', pts: '+3', x: 91, delay: 0.9, dur: 3.4, size: 62 },
+  { img: '/icons/btc.png',   sub: 'BTC',   pts: '+1', x: 22, delay: 2.9, dur: 2.7, size: 52 },
+  { img: '/icons/terra.png', sub: 'LUNA',  pts: '–5', x: 43, delay: 0.2, dur: 3.0, size: 48 },
+  { img: '/icons/eth.png',   sub: 'ETH',   pts: '+1', x: 63, delay: 1.6, dur: 2.5, size: 52 },
 ]
 
 function Corner({ top, left, right, bottom }: { top?: number; left?: number; right?: number; bottom?: number }) {
@@ -221,15 +221,15 @@ export default function Lobby({ onGameStart }: LobbyProps) {
           <WalletChip address={wallet?.address ?? ''} onPress={() => setWalletModalOpen(true)} />
         </div>
 
-        <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.18em', color: '#9ca3af', marginBottom: '1.2rem' }}>
+        <p style={{ fontFamily: "'Roboto Mono', monospace", fontSize: '0.75rem', letterSpacing: '0.18em', color: '#9ca3af', marginBottom: '1.2rem' }}>
           // GAME RULES
         </p>
 
-        <h1 style={{ fontSize: '3.8rem', fontWeight: 900, lineHeight: 1.05, margin: '0 0 1.4rem', letterSpacing: '-0.04em', color: '#0a0a0a' }}>
+        <h1 style={{ fontFamily: "'Britti Sans', sans-serif", fontSize: '3.8rem', fontWeight: 900, lineHeight: 1.05, margin: '0 0 1.4rem', letterSpacing: '-0.04em', color: '#0a0a0a' }}>
           Click & Win.
         </h1>
 
-        <p style={{ color: '#6b7280', fontSize: '1rem', lineHeight: 1.75, margin: '0 0 2rem', maxWidth: '380px' }}>
+        <p style={{ fontFamily: "'Inter', sans-serif", color: '#6b7280', fontSize: '1rem', lineHeight: 1.75, margin: '0 0 2rem', maxWidth: '380px' }}>
           Tap the right coins, rack up points, and walk away with real money. Fast, simple, addictive.
         </p>
 
@@ -244,9 +244,9 @@ export default function Lobby({ onGameStart }: LobbyProps) {
               display: 'flex', alignItems: 'center', gap: '1rem',
               padding: '0.9rem 0', borderBottom: '1px solid #e5e7eb',
             }}>
-              <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#d1d5db', minWidth: '22px' }}>{num}</span>
+              <span style={{ fontFamily: "'Roboto Mono', monospace", fontSize: '0.8rem', color: '#d1d5db', minWidth: '22px' }}>{num}</span>
               <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.1em', color: '#111' }}>{text}</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.1em', color: '#111' }}>{text}</span>
             </div>
           ))}
         </div>
@@ -255,7 +255,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
           {['⚡ Click fast', '🚫 Avoid bad coins', '🤑 Earn money'].map(tip => (
             <span key={tip} style={{
-              fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.06em',
+              fontFamily: "'Inter', sans-serif", fontSize: '0.78rem', fontWeight: 700, letterSpacing: '0.06em',
               background: '#0a0a0a', color: '#fff',
               borderRadius: '999px', padding: '0.35rem 0.9rem',
             }}>{tip}</span>
@@ -264,19 +264,19 @@ export default function Lobby({ onGameStart }: LobbyProps) {
 
         {/* Waiting for game */}
         {waitingForGame && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginTop: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginTop: '1rem' }}>
+            <span style={{ color: '#0a0a0a', fontSize: '1.8rem', fontWeight: 900, fontFamily: "'Britti Sans', sans-serif", letterSpacing: '-0.02em' }}>
+              Waiting for admin to start the game
+            </span>
             <img
               src="/Logomark.svg"
               alt="Loading"
               style={{
-                width: 20,
-                height: 20,
+                width: 36,
+                height: 36,
                 animation: 'spin 2s linear infinite',
               }}
             />
-            <span style={{ color: '#6b7280', fontSize: '0.85rem', fontWeight: 600, fontFamily: "'Inter', sans-serif" }}>
-              Waiting for admin to start the game
-            </span>
           </div>
         )}
       </div>
@@ -305,10 +305,10 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         </div>
 
         {/* Labels */}
-        <p style={{ position: 'absolute', top: 24, right: 50, fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.12em', color: '#9ca3af', margin: 0 }}>
+        <p style={{ position: 'absolute', top: 24, right: 50, fontFamily: "'Roboto Mono', monospace", fontSize: '0.7rem', letterSpacing: '0.12em', color: '#9ca3af', margin: 0 }}>
           // 001
         </p>
-        <p style={{ position: 'absolute', bottom: 24, left: 50, fontFamily: 'monospace', fontSize: '0.7rem', letterSpacing: '0.12em', color: '#9ca3af', margin: 0 }}>
+        <p style={{ position: 'absolute', bottom: 24, left: 50, fontFamily: "'Roboto Mono', monospace", fontSize: '0.7rem', letterSpacing: '0.12em', color: '#9ca3af', margin: 0 }}>
           // COLLECT
         </p>
 
@@ -338,31 +338,54 @@ export default function Lobby({ onGameStart }: LobbyProps) {
           boxShadow: '0 8px 40px rgba(0,0,0,0.10)',
           padding: '1.6rem 1.8rem',
         }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.72rem', letterSpacing: '0.18em', color: '#9ca3af', margin: '0 0 1rem' }}>
+          <p style={{ fontFamily: "'Roboto Mono', monospace", fontSize: '0.72rem', letterSpacing: '0.18em', color: '#9ca3af', margin: '0 0 1.2rem' }}>
             // POINTS SYSTEM
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-            {[
-              { coin: 'MONAD',      pts: '+ 3 pts', good: true,  dot: '#836ef9' },
-              { coin: 'BTC / ETH',  pts: '+ 1 pt',  good: true,  dot: '#F7931A' },
-              { coin: 'FTX / LUNA', pts: '– 5 pts', good: false, dot: '#ef4444' },
-            ].map(({ coin, pts, good, dot }) => (
-              <div key={coin} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '0.6rem 0.9rem',
-                background: good ? 'rgba(250,245,255,0.85)' : 'rgba(255,241,242,0.85)',
-                borderRadius: '10px',
-                border: `1px solid ${good ? '#e9d5ff' : '#fecdd3'}`,
-              }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, fontSize: '0.88rem' }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: dot, display: 'inline-block', flexShrink: 0 }} />
-                  {coin}
-                </span>
-                <span style={{ fontWeight: 800, fontSize: '0.88rem', color: good ? '#7c3aed' : '#dc2626', fontFamily: 'monospace' }}>
-                  {pts}
-                </span>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            {/* Level 1: MONAD */}
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem',
+              background: 'rgba(250,245,255,0.85)', borderRadius: '14px', border: '1px solid #e9d5ff',
+              padding: '0.8rem 1.4rem', width: '100%',
+            }}>
+              <img src="/icons/monad.png" alt="MONAD" style={{ width: 48, height: 48, borderRadius: '50%' }} />
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '0.9rem', color: '#111' }}>MON</span>
+              <span style={{ fontWeight: 800, fontSize: '1rem', color: '#7c3aed', fontFamily: "'Roboto Mono', monospace" }}>+ 3 pts</span>
+            </div>
+            {/* Level 2: BTC & ETH */}
+            <div style={{ display: 'flex', gap: '0.6rem', width: '100%' }}>
+              {[
+                { name: 'BTC', icon: '/icons/btc.png' },
+                { name: 'ETH', icon: '/icons/eth.png' },
+              ].map(c => (
+                <div key={c.name} style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem',
+                  background: 'rgba(250,245,255,0.85)', borderRadius: '14px', border: '1px solid #e9d5ff',
+                  padding: '0.7rem 0.6rem',
+                }}>
+                  <img src={c.icon} alt={c.name} style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '0.82rem', color: '#111' }}>{c.name}</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#7c3aed', fontFamily: "'Roboto Mono', monospace" }}>+ 1 pt</span>
+                </div>
+              ))}
+            </div>
+            {/* Level 3: FTX & LUNA */}
+            <div style={{ display: 'flex', gap: '0.6rem', width: '100%' }}>
+              {[
+                { name: 'FTX', icon: '/icons/ftx.png' },
+                { name: 'LUNA', icon: '/icons/terra.png' },
+              ].map(c => (
+                <div key={c.name} style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem',
+                  background: 'rgba(255,241,242,0.85)', borderRadius: '14px', border: '1px solid #fecdd3',
+                  padding: '0.7rem 0.6rem',
+                }}>
+                  <img src={c.icon} alt={c.name} style={{ width: 40, height: 40, borderRadius: '50%' }} />
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 800, fontSize: '0.82rem', color: '#111' }}>{c.name}</span>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#dc2626', fontFamily: "'Roboto Mono', monospace" }}>– 5 pts</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -374,20 +397,11 @@ export default function Lobby({ onGameStart }: LobbyProps) {
             top: 0,
             width: c.size,
             height: c.size,
-            borderRadius: '50%',
-            background: c.bg,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: `0 4px 20px ${c.bg}66`,
             animation: `coinFall ${c.dur}s ease-in ${c.delay}s infinite`,
             pointerEvents: 'none',
             zIndex: 1,
           }}>
-            <span style={{ fontSize: c.size * 0.34, lineHeight: 1, color: '#fff', fontWeight: 900 }}>{c.icon}</span>
-            <span style={{ fontSize: c.size * 0.16, color: 'rgba(255,255,255,0.85)', fontWeight: 700, letterSpacing: '0.04em', marginTop: 1 }}>{c.sub}</span>
-            <span style={{ fontSize: c.size * 0.17, color: '#fff', fontWeight: 900, fontFamily: 'monospace', marginTop: 1 }}>{c.pts}</span>
+            <img src={c.img} alt={c.sub} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
           </div>
         ))}
       </div>
