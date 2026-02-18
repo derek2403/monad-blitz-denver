@@ -606,35 +606,6 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
           </div>
         </div>
 
-        {/* Timer — top right */}
-        <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
-          <div className="bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 backdrop-blur-md flex items-center gap-3">
-            <svg width="48" height="48" viewBox="0 0 48 48">
-              <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-              <circle
-                cx="24" cy="24" r="20" fill="none"
-                stroke={isTimerLow ? '#FF4444' : '#A78BFA'}
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={`${2 * Math.PI * 20}`}
-                strokeDashoffset={`${2 * Math.PI * 20 * (1 - timerProgress)}`}
-                style={{
-                  transform: 'rotate(-90deg)',
-                  transformOrigin: '50% 50%',
-                  filter: isTimerLow ? 'drop-shadow(0 0 6px #FF4444)' : 'drop-shadow(0 0 4px #A78BFA)',
-                }}
-              />
-              <text
-                x="24" y="24"
-                textAnchor="middle" dominantBaseline="central"
-                fill={isTimerLow ? '#FF4444' : '#fff'}
-                fontSize="16" fontWeight="bold" fontFamily="monospace"
-              >
-                {timerSeconds}
-              </text>
-            </svg>
-          </div>
-        </div>
 
         {/* Character — center */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0 }}>
