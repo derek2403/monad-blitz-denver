@@ -79,7 +79,7 @@ function App() {
     case 'reward':
       return (
         <Reward
-          myScore={myScore}
+          leaderboard={leaderboard}
           myAddress={address}
           onExportWallet={handleExportWallet}
         />
