@@ -27,10 +27,6 @@ function App() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [myScore, setMyScore] = useState(0)
 
-  const handlePlay = () => {
-    setPage('lobby')
-  }
-
   const handleGameStart = useCallback((w: Wallet) => {
     setWallet(w)
     setPage('game')
@@ -62,7 +58,7 @@ function App() {
 
   switch (page) {
     case 'landing':
-      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
+      return <Landing onAdmin={handleAdmin} />
     case 'lobby':
       return <Lobby onGameStart={handleGameStart} />
     case 'game':
@@ -89,7 +85,7 @@ function App() {
     case 'admin':
       return <Admin onBack={handleDone} />
     default:
-      return <Landing onPlay={handlePlay} onAdmin={handleAdmin} />
+      return <Landing onAdmin={handleAdmin} />
   }
 }
 
