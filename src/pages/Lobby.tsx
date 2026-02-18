@@ -20,7 +20,7 @@ const rpcProvider = new JsonRpcProvider(MONAD_RPC_URL)
 const BRACKET = 18
 
 const COINS = [
-  { img: '/icons/monad.png', sub: 'MONAD', pts: '+3', x: 10, delay: 0,   dur: 2.9, size: 62 },
+  { img: '/icons/monad.png', sub: 'MON', pts: '+3', x: 10, delay: 0,   dur: 2.9, size: 62 },
   { img: '/icons/btc.png',   sub: 'BTC',   pts: '+1', x: 28, delay: 0.7, dur: 3.3, size: 52 },
   { img: '/icons/eth.png',   sub: 'ETH',   pts: '+1', x: 48, delay: 1.3, dur: 2.7, size: 52 },
   { img: '/icons/monad.png', sub: 'MONAD', pts: '+3', x: 68, delay: 0.3, dur: 3.1, size: 62 },
@@ -375,7 +375,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
               padding: '0.8rem 1.4rem', width: '100%',
             }}>
               <img src="/icons/monad.png" alt="MONAD" style={{ width: 48, height: 48, borderRadius: '50%' }} />
-              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#111' }}>MONAD</span>
+              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: '#111' }}>MON</span>
               <span style={{ fontWeight: 800, fontSize: '1rem', color: '#7c3aed', fontFamily: 'monospace' }}>+ 3 pts</span>
             </div>
             {/* Level 2: BTC & ETH */}
