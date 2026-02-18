@@ -14,7 +14,7 @@ import {
 } from '@heroui/react'
 
 const STORAGE_KEY = 'monad-ballgame-burner-key'
-const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
+const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/p3LF9TmoLQFqlPs6DcFxH'
 const rpcProvider = new JsonRpcProvider(MONAD_RPC_URL)
 
 function loadWallet(): { address: string; privateKey: string } | null {

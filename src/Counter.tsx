@@ -13,8 +13,8 @@ const COUNTER_ABI = [
 const COUNTER_IFACE = new Interface(COUNTER_ABI)
 const CHAIN_ID = 10143
 
-const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
-const MONAD_WS_URL = 'wss://monad-testnet.g.alchemy.com/v2/6U7t79S89NhHIspqDQ7oKGRWp5ZOfsNj'
+const MONAD_RPC_URL = 'https://monad-testnet.g.alchemy.com/v2/p3LF9TmoLQFqlPs6DcFxH'
+const MONAD_WS_URL = 'wss://monad-testnet.g.alchemy.com/v2/p3LF9TmoLQFqlPs6DcFxH'
 const MONAD_TESTNET_CHAIN_ID = '0x279F'
 
 const STORAGE_KEY = 'monad-counter-burner-key'
