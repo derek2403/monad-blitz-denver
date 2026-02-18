@@ -102,7 +102,6 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
   const [balls, setBalls] = useState<BallState[]>([])
   const [gameActive, setGameActive] = useState(false)
   const [status, setStatus] = useState('')
-  const [wsConnected, setWsConnected] = useState(false)
   const [myScore, setMyScore] = useState(0)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [txLogs, setTxLogs] = useState<TxLog[]>([])
@@ -116,6 +115,7 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
   const cachedParamsRef = useRef<{ nonce: number; maxFeePerGas: bigint; maxPriorityFeePerGas: bigint } | null>(null)
   const knownPlayersRef = useRef<Set<string>>(new Set())
   const claimingRef = useRef<Set<number>>(new Set())
+  const gameBoxRef = useRef<HTMLDivElement>(null)
   const animRef = useRef<number>(0)
   const fallingStartRef = useRef<number>(0)
   const gameStartedAtRef = useRef<number>(0) // local timestamp when game page mounted / game started
@@ -373,7 +373,7 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
         wsProviderRef.current = wsProvider
         await wsProvider.ready
         if (destroyed) { wsProvider.destroy(); return }
-        setWsConnected(true)
+        // ws connected
 
         const contract = new Contract(BALLGAME_ADDRESS, BALLGAME_ABI, wsProvider)
 
@@ -495,7 +495,7 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
         })
       } catch (err) {
         console.error('WS failed:', err)
-        setWsConnected(false)
+        // ws disconnected
       }
     }
     setupWs()
@@ -503,7 +503,7 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
       destroyed = true
       wsProviderRef.current?.destroy()
       wsProviderRef.current = null
-      setWsConnected(false)
+      // ws cleanup
     }
   }, [address])
 
@@ -591,11 +591,12 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
   const isTimerLow = timeLeft < 5000
 
   return (
-    <div className="w-screen h-screen bg-white flex items-center justify-center select-none overflow-hidden">
+    <div className="w-screen h-screen select-none overflow-hidden" style={{ backgroundColor: '#1a1a2e' }}>
       {/* Game box */}
       <div
-        className="relative rounded-2xl overflow-hidden border border-gray-200"
-        style={{ width: '80vw', height: '60vh', backgroundColor: '#1a1a2e' }}
+        ref={gameBoxRef}
+        className="relative w-full h-full overflow-hidden"
+        style={{ backgroundColor: '#1a1a2e' }}
       >
         {/* Score — top left */}
         <div className="absolute top-4 left-4 z-10">
@@ -606,12 +607,10 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
         </div>
 
         {/* Timer — top right */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2">
           <div className="bg-black/60 border border-white/10 rounded-xl px-4 py-2.5 backdrop-blur-md flex items-center gap-3">
             <svg width="48" height="48" viewBox="0 0 48 48">
-              {/* Background ring */}
               <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-              {/* Progress ring */}
               <circle
                 cx="24" cy="24" r="20" fill="none"
                 stroke={isTimerLow ? '#FF4444' : '#A78BFA'}
@@ -637,9 +636,9 @@ export default function Game({ wallet, onGameEnd }: GameProps) {
           </div>
         </div>
 
-        {/* WS status dot */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
-          <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+        {/* Character — center */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 0 }}>
+          <img src="/character.gif" alt="" style={{ width: 300, height: 300, opacity: 0.35 }} />
         </div>
 
         {/* Balls */}

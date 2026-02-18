@@ -65,6 +65,13 @@ export default function Landing({ onAdmin, onPlay }: LandingProps) {
     if (!wallet) {
       const w = createWallet()
       setWallet(w)
+      onOpen()
+      return
+    }
+    // If wallet exists and has >= 1 MON, skip the modal
+    if (balance && parseFloat(balance) >= 1) {
+      onPlay()
+      return
     }
     onOpen()
   }

@@ -1,5 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Wallet, JsonRpcProvider, formatEther, Contract, WebSocketProvider } from 'ethers'
+import {
+  Button,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from '@heroui/react'
 import WalletChip from '../components/WalletChip'
 import WalletModal from '../components/WalletModal'
 
@@ -67,8 +75,61 @@ export default function Lobby({ onGameStart }: LobbyProps) {
   const [status, setStatus] = useState('Creating your burner wallet...')
   const [waitingForGame, setWaitingForGame] = useState(false)
   const [walletModalOpen, setWalletModalOpen] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [countdown, setCountdown] = useState(3)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Create or load burner wallet on mount
+  const ONE_MON = 1000000000000000000n // 1e18
+
+  // Fund a wallet if it has < 1 MON, returns true if balance ends up >= 1 MON
+  const ensureFunded = async (w: Wallet): Promise<boolean> => {
+    try {
+      const bal = await rpcProvider.getBalance(w.address)
+      if (bal >= ONE_MON) {
+        setBalance(formatEther(bal))
+        return true
+      }
+      if (!ENV_PRIVATE_KEY) {
+        setStatus('Balance too low. Send MON to your address.')
+        return false
+      }
+      setStatus('Funding your wallet...')
+      const funder = new Wallet(ENV_PRIVATE_KEY, rpcProvider)
+      const [nonce, feeData] = await Promise.all([
+        rpcProvider.getTransactionCount(funder.address, 'pending'),
+        rpcProvider.getFeeData(),
+      ])
+      const signedTx = await funder.signTransaction({
+        to: w.address,
+        value: ONE_MON,
+        nonce,
+        gasLimit: 21000n,
+        maxFeePerGas: feeData.maxFeePerGas ?? 50000000000n,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 2000000000n,
+        chainId: CHAIN_ID,
+        type: 2,
+      })
+      await rpcProvider.send('eth_sendRawTransaction', [signedTx])
+      // Poll until balance >= 1 MON
+      for (let i = 0; i < 30; i++) {
+        await new Promise(r => setTimeout(r, 300))
+        const newBal = await rpcProvider.getBalance(w.address)
+        if (newBal >= ONE_MON) {
+          setBalance(formatEther(newBal))
+          setStatus('')
+          return true
+        }
+      }
+      setStatus('Funding timed out. Try again.')
+      return false
+    } catch {
+      setStatus('Auto-fund failed. Send MON manually to your address.')
+      return false
+    }
+  }
+
+  // Create or load burner wallet on mount, then ensure funded
   useEffect(() => {
     let w: Wallet
     const existing = localStorage.getItem(STORAGE_KEY)
@@ -82,45 +143,7 @@ export default function Lobby({ onGameStart }: LobbyProps) {
       setStatus('Burner wallet created!')
     }
     setWallet(w)
-
-    // Fund if env key available
-    if (ENV_PRIVATE_KEY) {
-      ; (async () => {
-        try {
-          setStatus('Funding your wallet...')
-          const funder = new Wallet(ENV_PRIVATE_KEY, rpcProvider)
-          const [nonce, feeData] = await Promise.all([
-            rpcProvider.getTransactionCount(funder.address, 'pending'),
-            rpcProvider.getFeeData(),
-          ])
-          const signedTx = await funder.signTransaction({
-            to: w.address,
-            value: 1000000000000000000n,
-            nonce,
-            gasLimit: 21000n,
-            maxFeePerGas: feeData.maxFeePerGas ?? 50000000000n,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 2000000000n,
-            chainId: CHAIN_ID,
-            type: 2,
-          })
-          await rpcProvider.send('eth_sendRawTransaction', [signedTx])
-          // Poll for balance
-          for (let i = 0; i < 20; i++) {
-            await new Promise(r => setTimeout(r, 250))
-            const bal = await rpcProvider.getBalance(w.address)
-            if (bal > 0n) {
-              setBalance(formatEther(bal))
-              setStatus('')
-              break
-            }
-          }
-        } catch {
-          setStatus('Auto-fund failed. Send MON manually to your address.')
-        }
-      })()
-    } else {
-      setStatus('Wallet ready. Send MON to your address, then wait for admin to start.')
-    }
+    ensureFunded(w)
   }, [])
 
   // Fetch balance periodically
@@ -136,6 +159,16 @@ export default function Lobby({ onGameStart }: LobbyProps) {
     const id = setInterval(fetch, 5000)
     return () => clearInterval(id)
   }, [wallet])
+
+  // Ensure funded then enter game
+  const enterGameIfFunded = async (w: Wallet) => {
+    const funded = await ensureFunded(w)
+    if (funded) {
+      onGameStart(w)
+    } else {
+      setStatus('Cannot enter game — wallet needs at least 1 MON.')
+    }
+  }
 
   // Listen for GameStarted event via WebSocket
   useEffect(() => {
@@ -153,14 +186,14 @@ export default function Lobby({ onGameStart }: LobbyProps) {
 
         const contract = new Contract(BALLGAME_ADDRESS, BALLGAME_ABI, wsProvider)
         contract.on('GameStarted', () => {
-          if (!destroyed) onGameStart(wallet)
+          if (!destroyed) enterGameIfFunded(wallet)
         })
 
         // Also check if a game is already active
         const readContract = new Contract(BALLGAME_ADDRESS, BALLGAME_ABI, rpcProvider)
         const active = await readContract.isGameActive()
         if (active && !destroyed) {
-          onGameStart(wallet)
+          enterGameIfFunded(wallet)
         }
       } catch (err) {
         console.error('WS failed in lobby:', err)
@@ -173,6 +206,46 @@ export default function Lobby({ onGameStart }: LobbyProps) {
       wsProvider?.destroy()
     }
   }, [wallet, onGameStart])
+
+  // Countdown for confirm modal
+  useEffect(() => {
+    if (!showConfirm) {
+      setCountdown(3)
+      setGenerating(false)
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+      return
+    }
+    setGenerating(true)
+    setCountdown(3)
+    timerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!)
+          timerRef.current = null
+          setGenerating(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null } }
+  }, [showConfirm])
+
+  const handleConfirmGenerate = () => {
+    const fresh = Wallet.createRandom()
+    localStorage.setItem(STORAGE_KEY, fresh.privateKey)
+    const w = new Wallet(fresh.privateKey, rpcProvider)
+    setWallet(w)
+    setShowConfirm(false)
+    setWalletModalOpen(false)
+  }
+
+  const handleBackFromConfirm = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    setGenerating(false)
+    setCountdown(3)
+    setShowConfirm(false)
+  }
 
   return (
     <div style={{
@@ -406,12 +479,42 @@ export default function Lobby({ onGameStart }: LobbyProps) {
         ))}
       </div>
 
-      {/* Wallet modal (no checkboxes) */}
+      {/* Wallet modal (with regenerate) */}
       <WalletModal
         wallet={wallet ? { address: wallet.address, privateKey: wallet.privateKey } : null}
         isOpen={walletModalOpen}
         onOpenChange={setWalletModalOpen}
+        onCreateNewWallet={() => { setWalletModalOpen(false); setShowConfirm(true) }}
       />
+
+      {/* Confirm New Wallet Modal */}
+      <Modal isOpen={showConfirm} onOpenChange={(open) => { if (!open) handleBackFromConfirm() }}>
+        <ModalContent>
+          {() => (
+            <>
+              <ModalHeader style={{ fontFamily: "'Britti Sans', sans-serif" }}>Generate New Wallet?</ModalHeader>
+              <ModalBody>
+                <p className="text-default-600" style={{ fontFamily: "'Inter', sans-serif" }}>
+                  This will replace your current burner wallet with a brand new one. Make sure you have saved your current private key if needed.
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="bordered" style={{ fontFamily: "'Roboto Mono', monospace" }} onPress={handleBackFromConfirm}>
+                  Back
+                </Button>
+                <Button
+                  color="danger"
+                  isDisabled={generating}
+                  style={{ fontFamily: "'Roboto Mono', monospace" }}
+                  onPress={handleConfirmGenerate}
+                >
+                  {generating ? `Wait (${countdown}s)` : 'OK, Generate'}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

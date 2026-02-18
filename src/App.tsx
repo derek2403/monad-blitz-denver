@@ -48,10 +48,6 @@ function App() {
     setPage('reward')
   }
 
-  const handleExportWallet = () => {
-    setPage('wallet')
-  }
-
   const handleAdmin = () => {
     setPage('admin')
   }
@@ -84,7 +80,8 @@ function App() {
         <Reward
           leaderboard={leaderboard}
           myAddress={address}
-          onExportWallet={handleExportWallet}
+          walletPrivateKey={wallet?.privateKey ?? ''}
+          onBackToLobby={() => { navigateTo('/games'); setPage('lobby') }}
         />
       )
     case 'wallet':

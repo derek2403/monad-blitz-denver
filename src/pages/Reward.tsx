@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import redPacketImg from '../assets/red-packet.png'
 import redPacketOpenImg from '../assets/red-packet-open.png'
+import WalletModal from '../components/WalletModal'
 
 const COLORS = ['#FFD700', '#FF4444', '#FF9900', '#FF6B6B', '#FFF176', '#FF80AB', '#69F0AE', '#40C4FF']
 
@@ -26,15 +27,17 @@ function calculatePrize(leaderboard: LeaderboardEntry[], myAddress: string): num
 interface RewardProps {
   leaderboard: LeaderboardEntry[]
   myAddress: string
-  onExportWallet: () => void
+  walletPrivateKey: string
+  onBackToLobby: () => void
 }
 
-export default function Reward({ leaderboard, myAddress, onExportWallet }: RewardProps) {
+export default function Reward({ leaderboard, myAddress, walletPrivateKey, onBackToLobby }: RewardProps) {
   const [opened, setOpened] = useState(false)
   const [showAmount, setShowAmount] = useState(false)
   const [ribbons, setRibbons] = useState<{ id: string }[]>([])
   const [circles, setCircles] = useState<{ id: string }[]>([])
   const [shake, setShake] = useState(false)
+  const [walletModalOpen, setWalletModalOpen] = useState(false)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const prize = calculatePrize(leaderboard, myAddress)
@@ -292,7 +295,7 @@ export default function Reward({ leaderboard, myAddress, onExportWallet }: Rewar
 
           {/* Export wallet button */}
           <button
-            onClick={onExportWallet}
+            onClick={() => setWalletModalOpen(true)}
             style={{
               marginTop: '1.5rem',
               background: 'linear-gradient(135deg, #FFE566 0%, #FFD700 50%, #FFA800 100%)',
@@ -327,6 +330,34 @@ export default function Reward({ leaderboard, myAddress, onExportWallet }: Rewar
           tap to open
         </p>
       )}
+
+      {/* Back to lobby button */}
+      <button
+        onClick={onBackToLobby}
+        style={{
+          marginTop: '1.5rem',
+          background: 'transparent',
+          border: '1px solid rgba(255,215,0,0.4)',
+          borderRadius: '16px',
+          padding: '10px 28px',
+          fontSize: '0.85rem',
+          fontWeight: 700,
+          color: 'rgba(255,215,0,0.7)',
+          cursor: 'pointer',
+          letterSpacing: '0.05em',
+          fontFamily: 'system-ui, sans-serif',
+          zIndex: 10,
+        }}
+      >
+        BACK TO LOBBY
+      </button>
+
+      {/* Wallet modal */}
+      <WalletModal
+        wallet={{ address: myAddress, privateKey: walletPrivateKey }}
+        isOpen={walletModalOpen}
+        onOpenChange={setWalletModalOpen}
+      />
     </div>
   )
 }

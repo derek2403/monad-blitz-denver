@@ -37,8 +37,10 @@ export default function Admin({ onBack }: AdminProps) {
   const [claimedCount, setClaimedCount] = useState(0)
   const [wsConnected, setWsConnected] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
+  const [leaderboard, setLeaderboard] = useState<{ address: string; score: number }[]>([])
 
   const wsProviderRef = useRef<WebSocketProvider | null>(null)
+  const knownPlayersRef = useRef<Set<string>>(new Set())
 
   const wallet = ENV_PRIVATE_KEY ? new Wallet(ENV_PRIVATE_KEY, rpcProvider) : null
 
@@ -67,11 +69,27 @@ export default function Admin({ onBack }: AdminProps) {
     }
   }, [])
 
+  const refreshLeaderboard = useCallback(async () => {
+    const players = Array.from(knownPlayersRef.current)
+    if (players.length === 0) return
+    try {
+      const scores = await Promise.all(players.map(p => readContract.getScore(p)))
+      const entries = players
+        .map((addr, i) => ({ address: addr, score: Number(scores[i]) }))
+        .sort((a, b) => b.score - a.score)
+      setLeaderboard(entries)
+    } catch { /* ignore */ }
+  }, [])
+
   useEffect(() => { fetchState() }, [fetchState])
   useEffect(() => {
     const id = setInterval(fetchState, 3000)
     return () => clearInterval(id)
   }, [fetchState])
+  useEffect(() => {
+    const id = setInterval(refreshLeaderboard, 3000)
+    return () => clearInterval(id)
+  }, [refreshLeaderboard])
 
   // WebSocket for live updates
   useEffect(() => {
@@ -93,11 +111,23 @@ export default function Admin({ onBack }: AdminProps) {
           setClaimedCount(0)
         })
 
-        contract.on('BallClaimed', (_: bigint, indexBn: bigint, player: string, ballTypeBn: bigint) => {
+        contract.on('BallClaimed', (_: bigint, indexBn: bigint, player: string, ballTypeBn: bigint, newScoreBn: bigint) => {
           const typeLabel = Number(ballTypeBn) === 1 ? 'Special' : Number(ballTypeBn) === 2 ? 'Bomb' : 'Normal'
           const short = `${player.slice(0, 6)}...${player.slice(-4)}`
           addLog(`Ball #${Number(indexBn)} (${typeLabel}) claimed by ${short}`)
           setClaimedCount(prev => prev + 1)
+          knownPlayersRef.current.add(player)
+          setLeaderboard(prev => {
+            const existing = prev.find(e => e.address.toLowerCase() === player.toLowerCase())
+            const newScore = Number(newScoreBn)
+            let updated: { address: string; score: number }[]
+            if (existing) {
+              updated = prev.map(e => e.address.toLowerCase() === player.toLowerCase() ? { ...e, score: newScore } : e)
+            } else {
+              updated = [...prev, { address: player, score: newScore }]
+            }
+            return updated.sort((a, b) => b.score - a.score)
+          })
         })
 
         contract.on('BallsRegenerated', () => {
@@ -173,91 +203,138 @@ export default function Admin({ onBack }: AdminProps) {
   }
 
   return (
-    <div className="w-screen h-screen bg-white overflow-hidden select-none flex flex-col items-center justify-center px-8">
-      <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-lg">
-        <div className="text-[11px] font-semibold tracking-[0.25em] uppercase text-gray-500">Admin Panel</div>
-        <h1 className="text-4xl font-bold font-mono text-purple-500">GAME CONTROL</h1>
+    <div className="w-screen h-screen bg-white overflow-hidden select-none flex flex-col items-center px-8 py-6">
+      <div className="text-[11px] font-semibold tracking-[0.25em] uppercase text-gray-500 mb-1">Admin Panel</div>
+      <h1 className="text-4xl font-bold font-mono text-purple-500 mb-6">GAME CONTROL</h1>
 
-        {/* Status card */}
-        <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-gray-500 text-xs uppercase tracking-widest">Contract Status</span>
-            <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-400 text-xs">Game ID</span>
-              <div className="text-gray-800 font-mono font-bold text-lg">{gameId}</div>
+      <div className="relative z-10 flex gap-6 w-full max-w-5xl flex-1 min-h-0">
+        {/* Left column — controls & log */}
+        <div className="flex flex-col gap-5 flex-1 min-w-0">
+          {/* Status card */}
+          <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-5">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500 text-xs uppercase tracking-widest">Contract Status</span>
+              <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`} />
             </div>
-            <div>
-              <span className="text-gray-400 text-xs">Status</span>
-              <div className={`font-bold text-lg ${gameActive ? 'text-green-600' : 'text-gray-400'}`}>
-                {gameActive ? 'ACTIVE' : 'INACTIVE'}
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-400 text-xs">Game ID</span>
+                <div className="text-gray-800 font-mono font-bold text-lg">{gameId}</div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">Status</span>
+                <div className={`font-bold text-lg ${gameActive ? 'text-green-600' : 'text-gray-400'}`}>
+                  {gameActive ? 'ACTIVE' : 'INACTIVE'}
+                </div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">Balls Claimed</span>
+                <div className="text-gray-800 font-mono font-bold text-lg">{claimedCount} / 50</div>
+              </div>
+              <div>
+                <span className="text-gray-400 text-xs">Admin Wallet</span>
+                <div className="text-gray-500 font-mono text-xs truncate">{wallet.address.slice(0, 10)}...</div>
               </div>
             </div>
-            <div>
-              <span className="text-gray-400 text-xs">Balls Claimed</span>
-              <div className="text-gray-800 font-mono font-bold text-lg">{claimedCount} / 50</div>
-            </div>
-            <div>
-              <span className="text-gray-400 text-xs">Admin Wallet</span>
-              <div className="text-gray-500 font-mono text-xs truncate">{wallet.address.slice(0, 10)}...</div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="w-full flex flex-col gap-3">
+            <button
+              onClick={handleStartGame}
+              disabled={loading || gameActive}
+              className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:text-gray-500 text-white text-lg font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-500/20 disabled:shadow-none"
+            >
+              {gameActive ? 'GAME IN PROGRESS' : 'START GAME'}
+            </button>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleRegenerate}
+                disabled={loading || !gameActive}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-300 disabled:text-gray-500 text-white font-bold py-3 rounded-2xl transition-all"
+              >
+                REGENERATE BALLS
+              </button>
+              <button
+                onClick={handleEndGame}
+                disabled={loading || !gameActive}
+                className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-gray-300 disabled:text-gray-500 text-white font-bold py-3 rounded-2xl transition-all"
+              >
+                END GAME
+              </button>
             </div>
           </div>
+
+          {/* Status text */}
+          {status && (
+            <div className="text-sm text-gray-500 text-center">{status}</div>
+          )}
+
+          {/* Live log */}
+          {logs.length > 0 && (
+            <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 flex-1 min-h-0 overflow-y-auto">
+              <div className="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500 mb-2">Live Log</div>
+              <div className="space-y-1">
+                {logs.map((log, i) => (
+                  <div key={i} className="text-xs text-gray-600 font-mono">{log}</div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Action buttons */}
-        <div className="w-full flex flex-col gap-3">
-          <button
-            onClick={handleStartGame}
-            disabled={loading || gameActive}
-            className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-300 disabled:text-gray-500 text-white text-lg font-bold py-3.5 rounded-2xl transition-all shadow-lg shadow-green-500/20 disabled:shadow-none"
-          >
-            {gameActive ? 'GAME IN PROGRESS' : 'START GAME'}
-          </button>
+        {/* Right column — live leaderboard */}
+        <div className="flex flex-col gap-3 w-80 min-w-[300px]">
+          <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 flex-1 min-h-0 overflow-y-auto">
+            <div className="flex justify-between items-center mb-3">
+              <div className="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500">Live Leaderboard</div>
+              <div className="text-[10px] text-gray-400 font-mono">{leaderboard.length} players</div>
+            </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={handleRegenerate}
-              disabled={loading || !gameActive}
-              className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-300 disabled:text-gray-500 text-white font-bold py-3 rounded-2xl transition-all"
-            >
-              REGENERATE BALLS
-            </button>
-            <button
-              onClick={handleEndGame}
-              disabled={loading || !gameActive}
-              className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-gray-300 disabled:text-gray-500 text-white font-bold py-3 rounded-2xl transition-all"
-            >
-              END GAME
-            </button>
+            {/* Header */}
+            <div className="grid grid-cols-[36px_1fr_60px] text-[10px] font-semibold tracking-[0.14em] uppercase text-gray-400 pb-2 border-b border-gray-200">
+              <span>#</span>
+              <span>Player</span>
+              <span className="text-right">Score</span>
+            </div>
+
+            {/* Rows */}
+            {leaderboard.map((entry, i) => {
+              const short = `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`
+              const rankColor = i === 0 ? '#d97706' : i === 1 ? '#6b7280' : i === 2 ? '#ea580c' : '#9ca3af'
+              const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`
+              return (
+                <div
+                  key={entry.address}
+                  className="grid grid-cols-[36px_1fr_60px] items-center py-2 border-b border-gray-100"
+                >
+                  <span className="font-mono font-bold text-sm" style={{ color: rankColor }}>
+                    {rankLabel}
+                  </span>
+                  <span className="font-mono text-xs text-gray-600 truncate">{short}</span>
+                  <span className="font-mono text-sm font-bold text-right" style={{ color: i < 3 ? rankColor : '#16a34a' }}>
+                    {entry.score}
+                  </span>
+                </div>
+              )
+            })}
+
+            {leaderboard.length === 0 && (
+              <div className="text-center text-gray-400 text-xs py-8">
+                No players yet — scores will appear as balls are claimed
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Status text */}
-        {status && (
-          <div className="text-sm text-gray-500 text-center">{status}</div>
-        )}
-
-        {/* Live log */}
-        {logs.length > 0 && (
-          <div className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 max-h-[25vh] overflow-y-auto">
-            <div className="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500 mb-2">Live Log</div>
-            <div className="space-y-1">
-              {logs.map((log, i) => (
-                <div key={i} className="text-xs text-gray-600 font-mono">{log}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={onBack}
-          className="mt-2 text-gray-500 hover:text-gray-800 text-sm underline transition-colors"
-        >
-          Back to Home
-        </button>
       </div>
+
+      <button
+        onClick={onBack}
+        className="mt-4 text-gray-500 hover:text-gray-800 text-sm underline transition-colors"
+      >
+        Back to Home
+      </button>
     </div>
   )
 }

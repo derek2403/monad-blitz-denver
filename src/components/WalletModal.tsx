@@ -149,13 +149,24 @@ export default function WalletModal({
                   </Button>
                 </>
               ) : (
-                <Button
-                  variant="bordered"
-                  style={{ fontFamily: "'Roboto Mono', monospace" }}
-                  onPress={onClose}
-                >
-                  Close
-                </Button>
+                <>
+                  {onCreateNewWallet && (
+                    <Button
+                      className="bg-red-500 text-white"
+                      style={{ fontFamily: "'Roboto Mono', monospace" }}
+                      onPress={onCreateNewWallet}
+                    >
+                      Create New Wallet
+                    </Button>
+                  )}
+                  <Button
+                    variant="bordered"
+                    style={{ fontFamily: "'Roboto Mono', monospace" }}
+                    onPress={onClose}
+                  >
+                    Close
+                  </Button>
+                </>
               )}
             </ModalFooter>
           </>
